@@ -4,6 +4,10 @@ import config from "../confg/config.js";
 import bcrypt from 'bcryptjs'
 import { publishToQueue } from "../broker/rabbit.js";
 
+// Define your Frontend URL here. 
+// Ideally put this in .env, but this fallback ensures it works on production.
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://moodify-frontend-three.vercel.app";
+
 export async function register(req, res){
     const {email, password, fullname:{firstName, lastName}, role = "user"} = req.body;
 
@@ -40,7 +44,12 @@ export async function register(req, res){
             role:user.role
     })
 
-    res.cookie("token", token);
+    // Update cookie to work across Vercel and Render
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: true, // Essential for HTTPS (Render/Vercel)
+        sameSite: 'None' // Essential for Cross-Origin cookies
+    });
 
     res.status(201).json({
         message:"User Registered Successfully",
@@ -77,7 +86,12 @@ export async function login(req, res){
         fullname: user.fullname
     }, config.JWT_SECRET, {expiresIn:"3d"});
 
-    res.cookie("token", token);
+    // Update cookie to work across Vercel and Render
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None' 
+    });
 
     res.status(200).json({
         messsage: "User logged in successfully",
@@ -107,14 +121,20 @@ export async function googleAuthCallback(req, res){
             fullname:isAlreadyExists.fullname
         }, config.JWT_SECRET, {expiresIn:"3d"})
 
-        res.cookie("token", token);
+        // 1. Fix Cookie for Production
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'None' 
+        });
 
          if(isAlreadyExists.role === 'artist'){
-        return res.redirect('http://localhost:5173/artist/dashboard')
-    }
+            // 2. Fix Redirect to use Vercel URL
+            return res.redirect(`${FRONTEND_URL}/artist/dashboard`)
+        }
 
-
-        return res.redirect("http://localhost:5173")
+        // 2. Fix Redirect to use Vercel URL
+        return res.redirect(`${FRONTEND_URL}`)
     }
 
     const newUser = await userModel.create({
@@ -133,8 +153,13 @@ export async function googleAuthCallback(req, res){
     }, config.JWT_SECRET, {expiresIn:"3d"});
 
 
-    res.cookie("token", token);
+    // 1. Fix Cookie for Production
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None' 
+    });
 
-   
-    res.redirect("http://localhost:5173");
+    // 2. Fix Redirect to use Vercel URL
+    res.redirect(`${FRONTEND_URL}`);
 }
