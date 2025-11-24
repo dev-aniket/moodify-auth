@@ -11,10 +11,17 @@ import cors from 'cors';
 
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:5173", // Keep this for local development
+  "https://moodify-frontend-three.vercel.app/" // You will get this URL from Vercel later
+];
+
 app.use(cors({
-    origin: 'http://localhost:5173', 
-    credentials: true,
-}))
+  origin: allowedOrigins,
+  credentials: true // Important for cookies/sessions
+}));
+
+
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
